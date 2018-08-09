@@ -13,13 +13,10 @@ import org.webrtc.SessionDescription;
 class CustomSdpObserver implements SdpObserver {
 
 
-    private String tag;
+    private String tag = CustomSdpObserver.class.getSimpleName();
 
-    CustomSdpObserver(String logTag) {
-        tag = this.getClass().getCanonicalName();
-        this.tag = this.tag + " " + logTag;
+    CustomSdpObserver() {
     }
-
 
     @Override
     public void onCreateSuccess(SessionDescription sessionDescription) {

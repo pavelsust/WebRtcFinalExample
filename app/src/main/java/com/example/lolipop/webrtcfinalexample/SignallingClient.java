@@ -1,11 +1,8 @@
 package com.example.lolipop.webrtcfinalexample;
+
 import android.annotation.SuppressLint;
 import android.util.Log;
 
-import io.socket.client.Socket;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.webrtc.IceCandidate;
@@ -24,8 +21,15 @@ import javax.net.ssl.X509TrustManager;
 import io.socket.client.IO;
 import io.socket.client.Socket;
 
+/**
+ * Webrtc_Step3
+ * Created by vivek-3102 on 11/03/17.
+ */
 
-public class SignallingClient {
+class SignallingClient {
+
+
+
     private static SignallingClient instance;
     private String roomName = null;
     private Socket socket;
@@ -34,12 +38,15 @@ public class SignallingClient {
     boolean isStarted = false;
     private SignalingInterface callback;
 
+
+
+
     //This piece of code should not go into production!!
     //This will help in cases where the node server is running in non-https server and you want to ignore the warnings
     @SuppressLint("TrustAllX509TrustManager")
     private final TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
-        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-            return new java.security.cert.X509Certificate[]{};
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[]{};
         }
 
         public void checkClientTrusted(X509Certificate[] chain,
@@ -51,16 +58,21 @@ public class SignallingClient {
         }
     }};
 
-    public static SignallingClient getInstance(){
-        if (instance == null){
+
+    public static SignallingClient getInstance() {
+        if (instance == null) {
             instance = new SignallingClient();
         }
-        if (instance.roomName == null){
-            // set the roomName here
+        if (instance.roomName == null) {
+            //set the room name here
             instance.roomName = "some_room_name";
         }
         return instance;
     }
+
+
+
+
 
     public void init(SignalingInterface signalingInterface) {
         this.callback = signalingInterface;
@@ -69,9 +81,13 @@ public class SignallingClient {
             sslcontext.init(null, trustAllCerts, null);
             IO.setDefaultHostnameVerifier((hostname, session) -> true);
             IO.setDefaultSSLContext(sslcontext);
+
+
             //set the socket.io url here
-            socket = IO.socket("https://192.168.0.5:1794");
+            socket = IO.socket("https://192.168.0.5:1794/");
             socket.connect();
+
+
             Log.d("SignallingClient", "init() called");
 
             if (!roomName.isEmpty()) {
@@ -85,8 +101,12 @@ public class SignallingClient {
                 callback.onCreatedRoom();
             });
 
+
+
             //room is full event
             socket.on("full", args -> Log.d("SignallingClient", "full call() called with: args = [" + Arrays.toString(args) + "]"));
+
+
 
             //peer joined event
             socket.on("join", args -> {
@@ -95,6 +115,8 @@ public class SignallingClient {
                 callback.onNewPeerJoined();
             });
 
+
+
             //when you joined a chat room successfully
             socket.on("joined", args -> {
                 Log.d("SignallingClient", "joined call() called with: args = [" + Arrays.toString(args) + "]");
@@ -102,11 +124,18 @@ public class SignallingClient {
                 callback.onJoinedRoom();
             });
 
+
+
             //log event
             socket.on("log", args -> Log.d("SignallingClient", "log call() called with: args = [" + Arrays.toString(args) + "]"));
 
+
+
             //bye event
             socket.on("bye", args -> callback.onRemoteHangUp((String) args[0]));
+
+
+
 
             //messages - SDP and ICE candidates are transferred through this
             socket.on("message", args -> {
@@ -144,8 +173,6 @@ public class SignallingClient {
         }
     }
 
-
-
     private void emitInitStatement(String message) {
         Log.d("SignallingClient", "emitInitStatement() called with: event = [" + "create or join" + "], message = [" + message + "]");
         socket.emit("create or join", message);
@@ -159,6 +186,7 @@ public class SignallingClient {
     public void emitMessage(SessionDescription message) {
         try {
             Log.d("SignallingClient", "emitMessage() called with: message = [" + message + "]");
+
             JSONObject obj = new JSONObject();
             obj.put("type", message.type.canonicalForm());
             obj.put("sdp", message.description);
@@ -170,7 +198,8 @@ public class SignallingClient {
         }
     }
 
-    public void emitIceCandidate(IceCandidate iceCandidate){
+
+    public void emitIceCandidate(IceCandidate iceCandidate) {
         try {
             JSONObject object = new JSONObject();
             object.put("type", "candidate");
@@ -181,13 +210,15 @@ public class SignallingClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
 
-    public void close(){
-        socket.emit("bye" , roomName);
+    }
+    
+    public void close() {
+        socket.emit("bye", roomName);
         socket.disconnect();
         socket.close();
     }
+
 
     interface SignalingInterface {
         void onRemoteHangUp(String msg);
