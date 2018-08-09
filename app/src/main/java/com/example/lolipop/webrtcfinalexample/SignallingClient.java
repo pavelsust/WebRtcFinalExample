@@ -84,7 +84,8 @@ class SignallingClient {
 
 
             //set the socket.io url here
-            socket = IO.socket("https://192.168.0.5:1794/");
+            //socket = IO.socket("https://192.168.0.5:1794/");
+            socket = IO.socket("https://139.59.248.179:1794/");
             socket.connect();
 
 
@@ -186,7 +187,6 @@ class SignallingClient {
     public void emitMessage(SessionDescription message) {
         try {
             Log.d("SignallingClient", "emitMessage() called with: message = [" + message + "]");
-
             JSONObject obj = new JSONObject();
             obj.put("type", message.type.canonicalForm());
             obj.put("sdp", message.description);

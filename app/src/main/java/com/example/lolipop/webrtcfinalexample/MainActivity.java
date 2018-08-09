@@ -102,9 +102,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void getIceServers() {
-        PeerConnection.IceServer peerIceServer = PeerConnection.IceServer.builder("turn:139.59.248.179:3478")
-                .setUsername("tashfin")
-                .setPassword("turn2s3rv3r")
+        PeerConnection.IceServer peerIceServer = PeerConnection.IceServer.builder("")
+                .setUsername("")
+                .setPassword("")
                 .createIceServer();
         peerIceServers.add(peerIceServer);
     }
