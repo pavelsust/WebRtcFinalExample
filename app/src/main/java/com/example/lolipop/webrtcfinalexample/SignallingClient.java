@@ -278,9 +278,7 @@ class SignallingClient {
     }
 
     private void emitInitStatement(){
-
-
-
+        
         JSONObject jsonObject2 = new JSONObject();
         try{
             jsonObject2.put("hasVideo" , "true or false");
