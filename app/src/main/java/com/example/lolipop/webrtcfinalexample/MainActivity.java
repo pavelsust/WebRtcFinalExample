@@ -77,12 +77,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         initViews();
         initVideos();
         getIceServers();
-        SignallingClient.getInstance().init(this);
-        start();
+        SignallingClient.getInstance().init(this,this);
 
+
+        start();
         @SuppressLint({"NewApi", "LocalSuppress"}) AudioManager audioManager = (AudioManager)getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
         audioManager.setMode(AudioManager.MODE_IN_CALL);
         audioManager.setSpeakerphoneOn(true);
+
     }
 
 
@@ -102,9 +104,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void getIceServers() {
-        PeerConnection.IceServer peerIceServer = PeerConnection.IceServer.builder("")
-                .setUsername("")
-                .setPassword("")
+        PeerConnection.IceServer peerIceServer = PeerConnection.IceServer.builder("turn:coturn.jigglemed.com")
+                .setUsername("tashfin")
+                .setPassword("turn2s3rv3r")
                 .createIceServer();
         peerIceServers.add(peerIceServer);
     }
