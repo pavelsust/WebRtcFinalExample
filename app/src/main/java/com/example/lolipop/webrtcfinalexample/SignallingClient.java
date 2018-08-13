@@ -4,6 +4,8 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
+import android.os.Build;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -86,12 +88,16 @@ class SignallingClient {
     private Emitter.Listener onConnect = new Emitter.Listener() {
 
         JSONObject registerInfo = new JSONObject();
+
+
         @Override
         public void call(Object... args) {
+            String android_id = Settings.Secure.getString(context.getContentResolver(),
+                    Settings.Secure.ANDROID_ID);
 
             try {
-                registerInfo.put("name" , "one plus user");
-                registerInfo.put("id" , "new user id");
+                registerInfo.put("name" , getDeviceName());
+                registerInfo.put("id" , ""+android_id);
                 registerInfo.put("specialty" , "special");
 
             } catch (JSONException e) {
@@ -105,15 +111,9 @@ class SignallingClient {
     };
 
 
-
     private void getUserList(){
 
-        String[] listUser = {};
-        String[] list = new String[1];
-
-
         socket.emit("list users", new String[0], args -> {
-            Log.d("SignallingClient", "list of users call() called with: args = " + Arrays.toString(args) + "");
 
             ((MainActivity) context).runOnUiThread(new Runnable() {
                 public void run() {
@@ -136,8 +136,11 @@ class SignallingClient {
                             String key = (String) keys.next(); // First key in your json object
                             String value = obj.getString(key);
                             JSONObject obj2 = new JSONObject(value);
+
                             nameList.add(obj2.getString("name"));
+
                             idList.add(obj2.getString("id"));
+
                             i++;
                         }
                         // obj.get(0)
@@ -162,6 +165,7 @@ class SignallingClient {
                         public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                             Toast.makeText(context, idList.get(i).toString(), Toast.LENGTH_LONG).show();
                             ((MainActivity) context).start();
+                            emitMessage(idList.get(i) , getDeviceName());
                             dialog.dismiss();
                         }
                     });
@@ -177,8 +181,6 @@ class SignallingClient {
         this.context = context;
         this.callback = signalingInterface;
 
-            emitInitStatement();
-
         try {
             SSLContext sslcontext = SSLContext.getInstance("TLS");
             sslcontext.init(null, trustAllCerts, null);
@@ -187,35 +189,32 @@ class SignallingClient {
             //set the socket.io url here
             socket = IO.socket("http://139.59.248.179:8000/");
             socket.connect();
-            Log.d("SignallingClient", "init() called");
-
             socket.on(Socket.EVENT_CONNECT, onConnect);
 
 
 
-            //room created event.
-            socket.on("new user", args -> {
-                Log.d("SignallingClient", "New user call() called with: args = [" + Arrays.toString(args) + "]");
-                isInitiator = true;
-                callback.onCreatedRoom();
-
-            });
-
-
-
-            //room is full event
-            //    socket.on("new user", args -> Log.d("SignallingClient", "New users call() called with: args = [" + Arrays.toString(args) + "]"));
-            socket.on("user leave", args -> Log.d("SignallingClient", "leave users call() called with: args = [" + Arrays.toString(args) + "]"));
-            socket.on("list user", args -> Log.d("SignallingClient", "list of users call() called with: args = [" + Arrays.toString(args) + "]"));
-            socket.on("hello", args -> Log.d("SignallingClient", "list of user call() called with: args = [" + Arrays.toString(args) + "]"));
-
             //peer joined event
-            socket.on("voip message", args -> {
+            socket.on("chat message", args -> {
+                Log.d("JSON_RESPONCE" , ""+args[0].toString());
+                JSONObject data = (JSONObject) args[0];
 
-                Log.d("SignallingClient", "join call() called with: args = [" + Arrays.toString(args) + "]");
-
-                callback.onNewPeerJoined();
+                String type = null;
+                try {
+                    type = data.getString("type");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                if (type.equalsIgnoreCase("signal")) {
+                    callback.onOfferReceived(data);
+                } else if (type.equalsIgnoreCase("answer") && isStarted) {
+                    callback.onAnswerReceived(data);
+                } else if (type.equalsIgnoreCase("candidate") && isStarted) {
+                    callback.onIceCandidateReceived(data);
+                }
             });
+
+
+
 
             //when you joined a chat room successfully
             socket.on("list users", args -> {
@@ -233,114 +232,55 @@ class SignallingClient {
                 dialog = builder.create();
             });
 
-            //log event
-            socket.on("log", args -> Log.d("SignallingClient", "log call() called with: args = [" + Arrays.toString(args) + "]"));
 
-            //bye event
-            socket.on("bye", args -> callback.onRemoteHangUp((String) args[0]));
-
-
-            //messages - SDP and ICE candidates are transferred through this
-            socket.on("chat message", args -> {
-                Log.d("SignallingClient", "message call() called with: args = [" + Arrays.toString(args) + "]");
-                if (args[0] instanceof String) {
-                    Log.d("SignallingClient", "String received :: " + args[0]);
-                    String data = (String) args[0];
-
-                    if (data.equalsIgnoreCase("")) {
-                        callback.onTryToStart();
-                    }
-                    if (data.equalsIgnoreCase("bye")) {
-                        callback.onRemoteHangUp(data);
-                    }
-                } else if (args[0] instanceof JSONObject) {
-                    try {
-
-                        JSONObject data = (JSONObject) args[0];
-                        Log.d("SignallingClient", "Json Received :: " + data.toString());
-                        String type = data.getString("type");
-                        if (type.equalsIgnoreCase("offer")) {
-                            callback.onOfferReceived(data);
-                        } else if (type.equalsIgnoreCase("answer") && isStarted) {
-                            callback.onAnswerReceived(data);
-                        } else if (type.equalsIgnoreCase("candidate") && isStarted) {
-                            callback.onIceCandidateReceived(data);
-                        }
-
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
         } catch (URISyntaxException | NoSuchAlgorithmException | KeyManagementException e) {
             e.printStackTrace();
         }
     }
 
-    private void emitInitStatement(){
-        
-        JSONObject jsonObject2 = new JSONObject();
+
+
+
+
+    public void emitMessage(String userID , String fromID) {
+
+
+        JSONObject jsonObject3 = new JSONObject();
         try{
-            jsonObject2.put("hasVideo" , "true or false");
-            jsonObject2.put("handle" , "from id");
+        jsonObject3.put("category" , 3);
+        jsonObject3.put( "content","Incoming call answered.");
+        jsonObject3.put("from" , fromID);
+        jsonObject3.put("time", "");
+        jsonObject3.put("to" , userID);
+        jsonObject3.put("type" , "signal");
         }catch (Exception e){
             e.printStackTrace();
         }
 
-        JSONArray jsonArrayPayload = new JSONArray();
-        jsonArrayPayload.put(jsonObject2);
-
-
-        JSONObject jsonObject1 = new JSONObject();
-        try{
-            jsonObject1.put("id" , "user_id");
-            jsonObject1.put("payload" , jsonArrayPayload);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-
-        JSONArray jsonArray = new JSONArray();
-        jsonArray.put(jsonObject1);
-
-        JSONObject jsonObject = new JSONObject();
-        try {
-            jsonObject.put("params" , jsonArray);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        Log.d("JSON" , ""+jsonObject.toString());
-
-
+        Log.d("JSON_MESSAGE" , ""+jsonObject3.toString());
+        socket.emit("chat message", jsonObject3);
 
     }
 
-    public void emitMessage(String message) {
-        Log.d("SignallingClient", "emitMessage() called with: message = [" + message + "]");
-        socket.emit("message", message);
+
+
+    public String getDeviceName() {
+        String manufacturer = Build.MANUFACTURER;
+        String model = Build.MODEL;
+        return (model+manufacturer);
     }
 
-    public void emitMessage(SessionDescription message) {
-        try {
-            Log.d("SignallingClient", "emitMessage() called with: message = [" + message + "]");
-            JSONObject obj = new JSONObject();
-            obj.put("type", message.type.canonicalForm());
-            obj.put("sdp", message.description);
-            Log.d("emitMessage", obj.toString());
-            socket.emit("chat message", obj);
-            Log.d("biplob", obj.toString());
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
+
 
 
     public void emitIceCandidate(IceCandidate iceCandidate) {
         try {
             JSONObject object = new JSONObject();
-            object.put("type", "candidate");
+            object.put("type", "signal");
             object.put("label", iceCandidate.sdpMLineIndex);
             object.put("id", iceCandidate.sdpMid);
             object.put("candidate", iceCandidate.sdp);
+
             socket.emit("chat message", object);
         } catch (Exception e) {
             e.printStackTrace();

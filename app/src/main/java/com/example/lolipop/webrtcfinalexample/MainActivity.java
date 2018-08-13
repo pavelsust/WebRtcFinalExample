@@ -251,7 +251,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 super.onCreateSuccess(sessionDescription);
                 localPeer.setLocalDescription(new CustomSdpObserver(), sessionDescription);
                 Log.d("onCreateSuccess", "SignallingClient emit ");
-                SignallingClient.getInstance().emitMessage(sessionDescription);
+                SignallingClient.getInstance().emitMessage();
             }
         }, sdpConstraints);
     }
@@ -289,10 +289,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      */
     @Override
     public void onCreatedRoom() {
+        /*
         showToast("You created the room " + gotUserMedia);
         if (gotUserMedia) {
             SignallingClient.getInstance().emitMessage("got user media");
         }
+        */
     }
 
 
@@ -302,10 +304,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      */
     @Override
     public void onJoinedRoom() {
+
+        /*
         showToast("You joined the room " + gotUserMedia);
         if (gotUserMedia) {
             SignallingClient.getInstance().emitMessage("got user media");
         }
+        */
     }
 
     @Override
@@ -346,7 +351,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onCreateSuccess(SessionDescription sessionDescription) {
                 super.onCreateSuccess(sessionDescription);
                 localPeer.setLocalDescription(new CustomSdpObserver(), sessionDescription);
-                SignallingClient.getInstance().emitMessage(sessionDescription);
+                //SignallingClient.getInstance().emitMessage();
             }
         }, new MediaConstraints());
     }
